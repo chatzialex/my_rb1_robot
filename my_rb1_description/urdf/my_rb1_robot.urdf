@@ -83,6 +83,11 @@
     </joint>
 
     <link name="right_wheel">
+        <inertial>
+            <mass value="1e-3"/>
+            <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+        </inertial>
+
         <collision>
             <origin xyz = "0 0 0" rpy="1.57 0 0"/>
             <geometry>
@@ -109,6 +114,11 @@
     </joint>
 
     <link name="left_wheel">
+        <inertial>
+            <mass value="1e-3"/>
+            <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+        </inertial>
+
         <collision>
             <origin xyz = "0 0 0" rpy="1.57 0 0"/>
             <geometry>
