@@ -21,7 +21,7 @@ public:
             "/odom", 1000, &RotateServiceServer::odomCallback, this)},
         service_server_{node_handle_.advertiseService(
             service_name_, &RotateServiceServer::service_callback, this)} {
-    ROS_DEBUG("Hello from RotateServiceServer constructor.");
+    ROS_INFO("rotate_robot service server succesfully launched.");
   }
 
 private:
@@ -59,6 +59,9 @@ bool RotateServiceServer::service_callback(my_rb1_ros::Rotate::Request &req,
   while (elapsed_time <= kTimeoutSec) {
     const double current_rotation_deg{(rotation_ - initial_rotation) *
                                       kRadToDegreesFactor};
+    std::cout << "rotation_:" << rotation_ << std::endl;
+    std::cout << "initial_rotation:" << initial_rotation << std::endl;
+    std::cout << "current_rotation_deg:" << current_rotation_deg << std::endl;
     ROS_DEBUG("%s: %f seconds elapsed, rotated by %f degrees",
               service_name_.c_str(), elapsed_time, current_rotation_deg);
     if (desired_rotation_sign * (current_rotation_deg - req.degrees) >= 0) {
@@ -72,7 +75,7 @@ bool RotateServiceServer::service_callback(my_rb1_ros::Rotate::Request &req,
 
   twist.angular.z = 0.0;
   twist_publisher_.publish(twist);
-  res.result = success ? "“Rotation successful.”"
+  res.result = success ? "Rotation successful."
                        : "Failed to rotate by the requested angle.";
   ROS_INFO("%s: %s", service_name_.c_str(), res.result.c_str());
   return success;
