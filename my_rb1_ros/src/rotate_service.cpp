@@ -72,7 +72,8 @@ bool RotateServiceServer::service_callback(my_rb1_ros::Rotate::Request &req,
 
   twist.angular.z = 0.0;
   twist_publisher_.publish(twist);
-  res.result = success ? "success" : "fail";
+  res.result = success ? "“Rotation successful.”"
+                       : "Failed to rotate by the requested angle.";
   ROS_INFO("%s: %s", service_name_.c_str(), res.result.c_str());
   return success;
 }
