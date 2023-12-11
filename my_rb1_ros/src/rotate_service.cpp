@@ -6,6 +6,8 @@
 #include "ros/spinner.h"
 #include "tf/LinearMath/Matrix3x3.h"
 #include "tf/LinearMath/Quaternion.h"
+#include <atomic>
+#include <cmath>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
@@ -36,7 +38,7 @@ private:
   ros::Publisher twist_publisher_{};
   ros::Subscriber odometry_subscriber_{};
   ros::ServiceServer service_server_{};
-  double rotation_{};
+  std::atomic<double> rotation_{};
   nav_msgs::Odometry odometry_{};
 
   bool service_callback(my_rb1_ros::Rotate::Request &req,
@@ -49,7 +51,9 @@ bool RotateServiceServer::service_callback(my_rb1_ros::Rotate::Request &req,
                                            my_rb1_ros::Rotate::Response &res) {
   ROS_INFO("%s: Initiating a %i degree rotation.", service_name_.c_str(),
            req.degrees);
-  const double initial_rotation{rotation_};
+  double current_rotation{rotation_.load()};
+  double last_rotation{current_rotation};
+  double total_rotation_deg{0.0};
   bool success{false};
   geometry_msgs::Twist twist{};
   double elapsed_time{0.0};
@@ -57,18 +61,19 @@ bool RotateServiceServer::service_callback(my_rb1_ros::Rotate::Request &req,
   twist.angular.z = desired_rotation_sign * kAngularVelocity;
 
   while (elapsed_time <= kTimeoutSec) {
-    const double current_rotation_deg{(rotation_ - initial_rotation) *
-                                      kRadToDegreesFactor};
-    std::cout << "rotation_:" << rotation_ << std::endl;
-    std::cout << "initial_rotation:" << initial_rotation << std::endl;
-    std::cout << "current_rotation_deg:" << current_rotation_deg << std::endl;
+    current_rotation = rotation_.load();
+    total_rotation_deg +=
+        std::atan2(std::sin(current_rotation - last_rotation),
+                   std::cos(current_rotation - last_rotation)) *
+        kRadToDegreesFactor;
     ROS_DEBUG("%s: %f seconds elapsed, rotated by %f degrees",
-              service_name_.c_str(), elapsed_time, current_rotation_deg);
-    if (desired_rotation_sign * (current_rotation_deg - req.degrees) >= 0) {
+              service_name_.c_str(), elapsed_time, total_rotation_deg);
+    if (desired_rotation_sign * (total_rotation_deg - req.degrees) >= 0) {
       success = true;
       break;
     }
     twist_publisher_.publish(twist);
+    last_rotation = current_rotation;
     rate.sleep();
     elapsed_time += 1 / kRateHz;
   }
@@ -90,7 +95,7 @@ void RotateServiceServer::odomCallback(
 
   tf::quaternionMsgToTF(msg->pose.pose.orientation, q);
   tf::Matrix3x3(q).getEulerYPR(yaw, pitch, roll);
-  rotation_ = yaw;
+  rotation_.store(yaw);
   /* ROS_INFO("[odom_callback] rotation = %f degrees",
            rotation_ * kRadToDegreesFactor); */
 }
